@@ -14,7 +14,7 @@ else
 fi
 
 # define global variables
-script_version="v1.0.11"
+script_version="v1.0.12"
 script_directory_path="${0%/*}"
 release_url="https://github.com/go-gitea/gitea/releases/tag"
 download_url="https://github.com/go-gitea/gitea/releases/download"
