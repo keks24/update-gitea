@@ -1,0 +1,265 @@
+#!/bin/bash
+script_name="${0##*/}"
+lock_file="/var/tmp/${script_name}.lock"
+if [[ $(/usr/bin/id --user --name) != "root" ]]
+then
+    /bin/echo -e "\e[01;31mExecute this script as user 'root'.\e[0m"
+    exit 1
+elif [[ -e "${lock_file}" ]]
+then
+    /bin/echo -e "\e[01;31mLock file '${lock_file}' is present, exiting...\e[0m"
+    exit 1
+else
+    /bin/touch "${lock_file}"
+fi
+
+# define global variables
+script_version="v1.0.10"
+script_directory_path="${0%/*}"
+release_url="https://github.com/go-gitea/gitea/releases/tag"
+download_url="https://github.com/go-gitea/gitea/releases/download"
+release_filename_prefix="gitea"
+release_filename_os="linux"
+release_filename_architecture="amd64"
+binary_directory="/usr/local/sbin"
+binary_filename="gitea"
+
+command_list=(aria2c curl install gpg logger mkdir rm systemctl)
+checkCommands()
+{
+    for current_command in "${command_list[@]}"
+    do
+        unalias "${current_command}" 2>/dev/null
+        if [[ ! $(command -v ${current_command} 2>/dev/null) ]]
+        then
+            echo -e "\e[01;31mCould not find command '${current_command}'.\e[0m"
+            exit 1
+        fi
+    done
+}
+
+checkCommands
+
+checkIfReleaseVersionExists()
+{
+    if [[ -d "${download_directory}" ]]
+    then
+        /bin/echo -e "\e[01;33mThe download directory '${download_directory}' already exists. Installing the binary from there...\e[0m"
+        release_version_exists="true"
+        return 0
+    elif [[ $(/usr/bin/curl --silent --head --write-out '%{http_code}' --output "/dev/null" "${release_url}") == "404" ]]
+    then
+        /bin/echo -e "\e[01;31mCould not access URL: '${release_url}'. Exiting..."
+        exit 1
+    else
+        /bin/echo -e "\e[01;32mThe release version '${release_version}' is accessable via '${release_url}'. Starting download...\e[0m"
+    fi
+}
+
+checkReleaseVersion()
+{
+    if [[ ! $(${binary_directory}/${binary_filename} --version) == *"${release_version}"* ]]
+    then
+        /bin/echo -e "\e[01;31mThe new downloaded Gitea version '${release_version}' does not match the output of '${binary_directory}/${binary_filename} --version'."
+    else
+        /bin/echo -e "\e[01;32mGitea was updated successfully!\e[0m"
+    fi
+}
+
+concatenateReleaseFilenames()
+{
+    # example filename: gitea-1.12.4-linux-amd64
+    release_filename="${release_filename_prefix}-${release_version}-${release_filename_os}-${release_filename_architecture}"
+
+    # example filename: gitea-1.12.4-linux-amd64.asc
+    release_signature_filename="${release_filename}.asc"
+
+    # example filename: gitea-1.12.4-linux-amd64.sha256
+    release_checksum_filename="${release_filename}.sha256"
+}
+
+createDownloadDirectory()
+{
+    /bin/mkdir --parents "${download_directory}"
+}
+
+downloadReleaseFiles()
+{
+    /usr/bin/aria2c --split="4" --max-connection-per-server="8" --force-sequential --auto-file-renaming="false" \
+        "${download_url}/${release_filename}" \
+        "${download_url}/${release_signature_filename}" \
+        "${download_url}/${release_checksum_filename}" --dir="${download_directory}"
+}
+
+getScriptUsage()
+{
+    /bin/echo ""
+    /bin/echo "${script_name} - Download and update a given Gitea version."
+    /bin/echo ""
+    /bin/echo "Usage: ${script_name} <options>"
+    /bin/echo ""
+    /bin/echo "OPTIONS"
+    /bin/echo "  -h, --help"
+    /bin/echo "     Display this help text."
+    /bin/echo ""
+    /bin/echo "  -r, --release-version <version>"
+    /bin/echo "     Download a given release version"
+    /bin/echo ""
+    /bin/echo "  -v, --version"
+    /bin/echo "     Displays the current version of this script."
+    /bin/echo ""
+    /bin/echo "EXAMPLES:"
+    /bin/echo "  Download and update a given Gitea version:"
+    /bin/echo "     ${script_name} --release-version 1.12.4"
+    /bin/echo ""
+}
+
+getVersion()
+{
+    /bin/echo "${script_name} ${script_version}"
+    exit 0
+}
+
+installBinaryFile()
+{
+    local install_binary_file
+
+    /bin/echo -e "\e[01;31mYou are about to install:\e[0m"
+    /bin/echo -e "\e[01;31m'${download_directory}/${release_filename}'\e[0m"
+    /bin/echo -e "\e[01;31mto\e[0m"
+    /bin/echo -e "\e[01;31m'${binary_directory}/${binary_filename}'\e[0m"
+    /bin/echo -e "\e[01;31mThis will also restart the systemd service unit!\e[0m"
+    /bin/echo ""
+
+    read -p $'\e[01;31mIs this OK? (y/N)\e[0m ' install_binary_file
+
+    case "${install_binary_file:-n}" in
+        "y"|"Y")
+            /usr/bin/install --owner="root" --group="root" --mode="755" "${download_directory}/${release_filename}" "${binary_directory}/${binary_filename}"
+            ;;
+
+        "n"|"N")
+            /bin/echo -e "\e[01;31mAborting installation...\e[0m"
+            removeLockFile
+            exit 1
+            ;;
+
+        *)
+            /bin/echo -e "\e[01;31mDid not understand input: '${install_binary_file}'. Exiting...\e[0m"
+            removeLockFile
+            exit 1
+    esac
+}
+
+outputSystemdStatus()
+{
+    /bin/systemctl status gitea.service
+}
+
+removeLockFile()
+{
+    /bin/rm --force "${lock_file}"
+}
+
+restartSystemdService()
+{
+    /bin/systemctl restart gitea.service
+}
+
+verifyBinaryFile()
+{
+    /usr/bin/gpg --verify "${download_directory}/${release_signature_filename}" "${download_directory}/${release_filename}"
+}
+
+writeLog()
+{
+    /usr/bin/logger --tag "update gitea" --id --stderr "${script_directory_path}/${script_name}: executed"
+}
+
+main()
+{
+    if [[ "${1}" == "" ]]
+    then
+        getScriptUsage
+        /bin/echo -e "\e[01;31mNo parameter set. Exiting...\e[0m"
+        exit 1
+    fi
+
+    while (( ${#} ))
+    do
+        case "${1}" in
+            "-h" | "--help")
+                getScriptUsage
+                exit 0
+                ;;
+
+            "-r" | "--release-version")
+                # refactor me: this is dirty :)
+                if [[ "${2}" == "" ]]
+                then
+                    removeLockFile
+                    getScriptUsage
+                    /bin/echo -e "\e[01;31mThe release version is missing. Exiting...\e[0m"
+                    exit 1
+                fi
+
+                release_version="${2}"
+                release_url+="/v${release_version}"
+                download_url+="/v${release_version}"
+                download_directory="/usr/local/share/gitea/${release_version}-${release_filename_os}-${release_filename_architecture}"
+                shift
+                ;;
+
+            "-v" | "--version")
+                removeLockFile
+                getVersion
+                ;;
+
+            *)
+                getScriptUsage
+                /bin/echo -e "\e[01;31mParameter '${1}' not found.\e[0m"
+                exit 1
+        esac
+
+        shift || break
+    done
+
+    writeLog
+
+    checkIfReleaseVersionExists
+
+    concatenateReleaseFilenames
+
+    if [[ "${release_version_exists}" == "true" ]]
+    then
+        verifyBinaryFile
+
+        installBinaryFile
+
+        restartSystemdService
+
+        outputSystemdStatus
+
+        checkReleaseVersion
+
+        removeLockFile
+    else
+        createDownloadDirectory
+
+        downloadReleaseFiles
+
+        verifyBinaryFile
+
+        installBinaryFile
+
+        restartSystemdService
+
+        outputSystemdStatus
+
+        checkReleaseVersion
+
+        removeLockFile
+    fi
+}
+
+main "${@}"
