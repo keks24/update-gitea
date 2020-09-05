@@ -14,7 +14,7 @@ else
 fi
 
 # define global variables
-script_version="v1.0.10"
+script_version="v1.0.11"
 script_directory_path="${0%/*}"
 release_url="https://github.com/go-gitea/gitea/releases/tag"
 download_url="https://github.com/go-gitea/gitea/releases/download"
@@ -24,7 +24,7 @@ release_filename_architecture="amd64"
 binary_directory="/usr/local/sbin"
 binary_filename="gitea"
 
-command_list=(aria2c curl install gpg logger mkdir rm systemctl)
+command_list=(aria2c curl install gpg logger mkdir rm sha256sum systemctl)
 checkCommands()
 {
     for current_command in "${command_list[@]}"
@@ -169,6 +169,10 @@ restartSystemdService()
 verifyBinaryFile()
 {
     /usr/bin/gpg --verify "${download_directory}/${release_signature_filename}" "${download_directory}/${release_filename}"
+
+    pushd "${download_directory}" >/dev/null
+    /usr/bin/sha256sum --check "${release_checksum_filename}"
+    popd >/dev/null
 }
 
 writeLog()
