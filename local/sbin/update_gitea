@@ -50,6 +50,7 @@ checkIfReleaseVersionExists()
     elif [[ $(/usr/bin/curl --silent --head --write-out '%{http_code}' --output "/dev/null" "${release_url}") == "404" ]]
     then
         /bin/echo -e "\e[01;31mCould not access URL: '${release_url}'. Exiting..."
+        removeLockFile
         exit 1
     else
         /bin/echo -e "\e[01;32mThe release version '${release_version}' is accessable via '${release_url}'. Starting download...\e[0m"
@@ -184,6 +185,7 @@ main()
 {
     if [[ "${1}" == "" ]]
     then
+        removeLockFile
         getScriptUsage
         /bin/echo -e "\e[01;31mNo parameter set. Exiting...\e[0m"
         exit 1
@@ -193,6 +195,7 @@ main()
     do
         case "${1}" in
             "-h" | "--help")
+                removeLockFile
                 getScriptUsage
                 exit 0
                 ;;
@@ -220,6 +223,7 @@ main()
                 ;;
 
             *)
+                removeLockFile
                 getScriptUsage
                 /bin/echo -e "\e[01;31mParameter '${1}' not found.\e[0m"
                 exit 1
