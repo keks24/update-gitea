@@ -95,6 +95,35 @@ concatenateReleaseFilenames()
     release_checksum_filename="${release_filename}.sha256"
 }
 
+controlSystemdService()
+{
+    local systemd_service_name="gitea.service"
+    local systemd_service_state="${1}"
+
+    case "${systemd_service_state}" in
+        "start")
+            /bin/systemctl start "${systemd_service_name}"
+            ;;
+
+        "stop")
+            /bin/systemctl stop "${systemd_service_name}"
+            ;;
+
+        "restart")
+            /bin/systemctl restart "${systemd_service_name}"
+            ;;
+
+        "status")
+            /bin/systemctl status "${systemd_service_name}"
+            ;;
+
+        *)
+            /bin/echo -e "\e[01;31mSomething went wrong handling the systemd service unit.\e[0m"
+            exit 1
+    esac
+}
+
+
 createDownloadDirectory()
 {
     /bin/mkdir --parents "${download_directory}"
@@ -152,7 +181,10 @@ installBinaryFile()
 
     case "${install_binary_file:-n}" in
         "y"|"Y")
+            controlSystemdService "stop"
             /usr/bin/install --owner="root" --group="root" --mode="755" "${download_directory}/${release_filename}" "${binary_directory}/${binary_filename}"
+            controlSystemdService "start"
+            controlSystemdService "status"
             ;;
 
         "n"|"N")
@@ -168,19 +200,9 @@ installBinaryFile()
     esac
 }
 
-outputSystemdStatus()
-{
-    /bin/systemctl status gitea.service
-}
-
 removeLockFile()
 {
     /bin/rm --force "${lock_file}"
-}
-
-restartSystemdService()
-{
-    /bin/systemctl restart gitea.service
 }
 
 verifyBinaryFile()
@@ -260,10 +282,6 @@ main()
 
         installBinaryFile
 
-        restartSystemdService
-
-        outputSystemdStatus
-
         checkReleaseVersion
 
         removeLockFile
@@ -275,10 +293,6 @@ main()
         verifyBinaryFile
 
         installBinaryFile
-
-        restartSystemdService
-
-        outputSystemdStatus
 
         checkReleaseVersion
 
