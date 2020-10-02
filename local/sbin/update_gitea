@@ -79,7 +79,7 @@ checkReleaseVersion()
     then
         /bin/echo -e "\e[01;31mThe new downloaded Gitea version '${release_version}' does not match the output of '${binary_directory}/${binary_filename} --version'."
     else
-        /bin/echo -e "\e[01;32mGitea was updated to version '${release_version}' successfully!\e[0m"
+        /bin/echo -e "\e[01;32mGitea was successfully updated to version '${release_version}'!\e[0m"
     fi
 }
 
