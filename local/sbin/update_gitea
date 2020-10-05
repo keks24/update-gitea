@@ -30,7 +30,7 @@ else
 fi
 
 # define global variables
-script_version="v1.2.5"
+script_version="v1.2.6"
 script_directory_path="${0%/*}"
 gitea_username="gitea"
 gitea_configuration_file="/etc/gitea/app.ini"
@@ -201,7 +201,7 @@ installBinaryFile()
         "y"|"Y")
             flushQueues
             controlSystemdService "stop"
-            /usr/bin/install --owner="root" --group="root" --mode="755" "${download_directory}/${release_filename}" "${binary_directory}/${binary_filename}"
+            /usr/bin/install --verbose --owner="root" --group="root" --mode="755" "${download_directory}/${release_filename}" "${binary_directory}/${binary_filename}"
             controlSystemdService "start"
             controlSystemdService "status"
             ;;
