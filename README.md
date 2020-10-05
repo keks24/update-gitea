@@ -1,2 +1,2 @@
-# gitea-supplementary
-useful things to supplement `gitea`.
+# update-gitea
+update `gitea` using `bash`.
