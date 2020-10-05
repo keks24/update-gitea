@@ -30,7 +30,7 @@ else
 fi
 
 # define global variables
-script_version="v1.2.1"
+script_version="v1.2.2"
 script_directory_path="${0%/*}"
 gitea_username="gitea"
 gitea_configuration_file="/etc/gitea/app.ini"
@@ -182,9 +182,9 @@ installBinaryFile()
     local install_binary_file
 
     /bin/echo -e "\e[01;31mYou are about to install:\e[0m\n"
-    /bin/echo -e "\e[01;31m    '${download_directory}/${release_filename}'\e[0m"
-    /bin/echo -e "\e[01;31m    to\e[0m"
-    /bin/echo -e "\e[01;31m    '${binary_directory}/${binary_filename}'\e[0m\n"
+    /bin/echo -e "\e[01;31m\t'${download_directory}/${release_filename}'\e[0m"
+    /bin/echo -e "\e[01;31m\tto\e[0m"
+    /bin/echo -e "\e[01;31m\t'${binary_directory}/${binary_filename}'\e[0m\n"
     /bin/echo -e "\e[01;31mThis will also flush all queues and restart the systemd service unit!\e[0m"
     /bin/echo ""
 
