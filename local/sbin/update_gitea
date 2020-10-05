@@ -75,7 +75,7 @@ checkIfReleaseVersionExists()
             removeLockFile
             exit 1
         else
-            /bin/echo -e "\e[01;32mThe release version '${release_version}' is accessable via '${release_url}'. Starting download...\e[0m"
+            /bin/echo -e "\e[01;32mThe release version '${release_version}' is accessable via '${release_url}', HTTP status: '${http_return_code}'. Starting download...\e[0m"
         fi
     fi
 }
