@@ -30,7 +30,7 @@ else
 fi
 
 # define global variables
-script_version="v1.2.6"
+script_version="v1.2.7"
 script_directory_path="${0%/*}"
 gitea_username="gitea"
 gitea_configuration_file="/etc/gitea/app.ini"
@@ -148,7 +148,7 @@ downloadReleaseFiles()
 
 flushQueues()
 {
-    # make sure to execute this command as the user from which was the process started from: systemctl cat gitea.service
+    # make sure to execute this command as the user from which the process was started from: systemctl cat gitea.service
     # also make sure, that this user has set the following environment variables properly:
     ## GITEA_CUSTOM="/etc/gitea/"
     ## GITEA_WORK_DIR="/var/lib/gitea/"
