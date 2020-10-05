@@ -30,10 +30,11 @@ else
 fi
 
 # define global variables
-script_version="v1.2.2"
+script_version="v1.2.3"
 script_directory_path="${0%/*}"
 gitea_username="gitea"
 gitea_configuration_file="/etc/gitea/app.ini"
+http_error_code_regex="^[45][0-9]{2}"
 release_url="https://github.com/go-gitea/gitea/releases/tag"
 download_url="https://github.com/go-gitea/gitea/releases/download"
 release_filename_prefix="gitea"
@@ -65,13 +66,17 @@ checkIfReleaseVersionExists()
         /bin/echo -e "\e[01;33mThe download directory '${download_directory}' already exists. Installing the binary from there...\e[0m"
         release_version_exists="true"
         return 0
-    elif [[ $(/usr/bin/curl --silent --head --write-out '%{http_code}' --output "/dev/null" "${release_url}") == "404" ]]
-    then
-        /bin/echo -e "\e[01;31mCould not access URL: '${release_url}'. Exiting..."
-        removeLockFile
-        exit 1
     else
-        /bin/echo -e "\e[01;32mThe release version '${release_version}' is accessable via '${release_url}'. Starting download...\e[0m"
+        http_return_code=$(/usr/bin/curl --silent --head --write-out '%{http_code}' --output "/dev/null" "${release_url}")
+
+        if [[ "${http_return_code}" =~ ${http_error_code_regex} ]]
+        then
+            /bin/echo -e "\e[01;31mCould not access URL: '${release_url}', HTTP status: '${http_return_code}'. Exiting..."
+            removeLockFile
+            exit 1
+        else
+            /bin/echo -e "\e[01;32mThe release version '${release_version}' is accessable via '${release_url}'. Starting download...\e[0m"
+        fi
     fi
 }
 
