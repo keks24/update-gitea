@@ -30,8 +30,10 @@ else
 fi
 
 # define global variables
-script_version="v1.1.2"
+script_version="v1.2.1"
 script_directory_path="${0%/*}"
+gitea_username="gitea"
+gitea_configuration_file="/etc/gitea/app.ini"
 release_url="https://github.com/go-gitea/gitea/releases/tag"
 download_url="https://github.com/go-gitea/gitea/releases/download"
 release_filename_prefix="gitea"
@@ -40,7 +42,7 @@ release_filename_architecture="amd64"
 binary_directory="/usr/local/sbin"
 binary_filename="gitea"
 
-command_list=(aria2c curl install gpg logger mkdir rm sha256sum systemctl)
+command_list=(aria2c curl install gitea gpg logger mkdir rm sha256sum su systemctl)
 checkCommands()
 {
     for current_command in "${command_list[@]}"
@@ -137,6 +139,15 @@ downloadReleaseFiles()
         "${download_url}/${release_checksum_filename}" --dir="${download_directory}"
 }
 
+flushQueues()
+{
+    # make sure to execute this command as the user from which was the process started from: systemctl cat gitea.service
+    # also make sure, that this user has set the following environment variables properly:
+    ## GITEA_CUSTOM="/etc/gitea/"
+    ## GITEA_WORK_DIR="/var/lib/gitea/"
+    /bin/su - "${gitea_username}" --command="/usr/local/sbin/gitea manager flush-queues --config='${gitea_configuration_file}'"
+}
+
 getScriptUsage()
 {
     /bin/echo ""
@@ -170,17 +181,18 @@ installBinaryFile()
 {
     local install_binary_file
 
-    /bin/echo -e "\e[01;31mYou are about to install:\e[0m"
-    /bin/echo -e "\e[01;31m'${download_directory}/${release_filename}'\e[0m"
-    /bin/echo -e "\e[01;31mto\e[0m"
-    /bin/echo -e "\e[01;31m'${binary_directory}/${binary_filename}'\e[0m"
-    /bin/echo -e "\e[01;31mThis will also restart the systemd service unit!\e[0m"
+    /bin/echo -e "\e[01;31mYou are about to install:\e[0m\n"
+    /bin/echo -e "\e[01;31m    '${download_directory}/${release_filename}'\e[0m"
+    /bin/echo -e "\e[01;31m    to\e[0m"
+    /bin/echo -e "\e[01;31m    '${binary_directory}/${binary_filename}'\e[0m\n"
+    /bin/echo -e "\e[01;31mThis will also flush all queues and restart the systemd service unit!\e[0m"
     /bin/echo ""
 
     read -p $'\e[01;31mIs this OK? (y/N)\e[0m ' install_binary_file
 
     case "${install_binary_file:-n}" in
         "y"|"Y")
+            flushQueues
             controlSystemdService "stop"
             /usr/bin/install --owner="root" --group="root" --mode="755" "${download_directory}/${release_filename}" "${binary_directory}/${binary_filename}"
             controlSystemdService "start"
