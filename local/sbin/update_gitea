@@ -30,7 +30,7 @@ else
 fi
 
 # define global variables
-script_version="v1.2.3"
+script_version="v1.2.5"
 script_directory_path="${0%/*}"
 gitea_username="gitea"
 gitea_configuration_file="/etc/gitea/app.ini"
@@ -67,7 +67,7 @@ checkIfReleaseVersionExists()
         release_version_exists="true"
         return 0
     else
-        http_return_code=$(/usr/bin/curl --silent --head --write-out '%{http_code}' --output "/dev/null" "${release_url}")
+        local http_return_code=$(/usr/bin/curl --silent --head --write-out '%{http_code}' --output "/dev/null" "${release_url}")
 
         if [[ "${http_return_code}" =~ ${http_error_code_regex} ]]
         then
@@ -82,9 +82,11 @@ checkIfReleaseVersionExists()
 
 checkReleaseVersion()
 {
-    if [[ ! $(${binary_directory}/${binary_filename} --version) == *"${release_version}"* ]]
+    local installed_gitea_version=$("${binary_directory}/${binary_filename}" --version)
+
+    if [[ ! "${installed_gitea_version}" == *"${release_version}"* ]]
     then
-        /bin/echo -e "\e[01;31mThe new downloaded Gitea version '${release_version}' does not match the output of '${binary_directory}/${binary_filename} --version'."
+        /bin/echo -e "\e[01;31mThe new downloaded Gitea version '${release_version}' does not match the output of '${binary_directory}/${binary_filename} --version': '${installed_gitea_version}'"
     else
         /bin/echo -e "\e[01;32mGitea was successfully updated to version '${release_version}'!\e[0m"
     fi
