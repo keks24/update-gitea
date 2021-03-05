@@ -188,6 +188,7 @@ installBinaryFile()
 {
     local install_binary_file
 
+    /bin/echo ""
     /bin/echo -e "\e[01;31mYou are about to install:\e[0m\n"
     /bin/echo -e "\e[01;31m\t'${download_directory}/${release_filename}'\e[0m"
     /bin/echo -e "\e[01;31m\tto\e[0m"
