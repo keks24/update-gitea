@@ -140,7 +140,7 @@ createDownloadDirectory()
 
 downloadReleaseFiles()
 {
-    /usr/bin/aria2c --split="4" --max-connection-per-server="8" --force-sequential --auto-file-renaming="false" \
+    /usr/bin/aria2c --split="4" --max-connection-per-server="8" --force-sequential="true" --auto-file-renaming="false" \
         "${download_url}/${release_filename}" \
         "${download_url}/${release_signature_filename}" \
         "${download_url}/${release_checksum_filename}" --dir="${download_directory}"
